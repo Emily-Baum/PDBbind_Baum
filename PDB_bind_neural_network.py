@@ -22,12 +22,12 @@ from sklearn.metrics import r2_score
 from sklearn.metrics import mean_absolute_error
 from sklearn.metrics import mean_squared_error
 
-class deeplearn(nn.Module):
+class DeepLearn(nn.Module):
     
     # model works for layers of any same size and up to 3 layers
     def __init__(self,size=256,layers=1):
         
-        super(deeplearn, self).__init__()
+        super(DeepLearn, self).__init__()
         self.layer = layers # for using in forward function
         self.fc1 = nn.Linear(2048,size) 
         
@@ -86,11 +86,11 @@ def train(model,device,train_dl,optim):
     loss_fn = torch.nn.L1Loss(reduction="sum")
     loss_tot = 0
     
-    for b_i, (W, z) in enumerate(train_dl):
+    for b_i, (f_p, z) in enumerate(train_dl):
         
-        W, z = W.to(device), z.to(device)
+        f_p, z = f_p.to(device), z.to(device)
         optim.zero_grad()
-        pred_prob = model(W)
+        pred_prob = model(f_p)
         loss = loss_fn(pred_prob, z.view(-1,1))
         loss.backward()
         optim.step()
@@ -108,10 +108,10 @@ def validate(model, device, valid_dl, epoch):
     
     with torch.no_grad():
         
-        for W, z in valid_dl:
+        for f_p, z in valid_dl:
             
-            W, z = W.to(device), z.to(device)
-            pred_prob = model(W)
+            f_p, z = f_p.to(device), z.to(device)
+            pred_prob = model(f_p)
             loss_tot += loss_fn(pred_prob, z.view(-1,1)).item()
             
     loss_tot /= len(valid_dl.dataset)
@@ -142,24 +142,24 @@ def predict(model, device, dataloader):
 # can edit values to the following variable matrices to test different hyperparameter combinations
 # example: s_layer = [128, 32, 256]
 
-n_layer = [2] # number of layers in model
-s_layer = [256] # size of layers
-s_batch = [32] # size of batches for training and validation
-l_rate = [1e-3] # learning rate
-n_epoch = [10] # number of epochs to train
+number_layers = [2] 
+size_layers = [256] 
+size_batches = [32] 
+learning_rate = [1e-3] 
+n_epoch = [10] 
 
-for a in n_layer:
+for a in number_layers:
     
-    for b in s_layer:
+    for b in size_layers:
         
-        for c in s_batch:
+        for c in size_batches:
             
-            for d in l_rate:
+            for d in learning_rate:
                 
                 for e in n_epoch:
                     
                     # import data - important to change pathway
-                    data = Data('C:/Users/Emily/Dropbox/Lab/HW/HW1/pdbind_full_fp2.csv')
+                    data = Data('pdbind_full_fp2.csv') 
                     
                     # train and test splits
                     n_train = int(len(data) * 0.8)
@@ -171,25 +171,25 @@ for a in n_layer:
                     train_dl = DataLoader(train_set, batch_size=c, shuffle=True)
                     val_dl = DataLoader(val_set, batch_size=c, shuffle=True)
                     device = torch.device('cpu')
-                    model = deeplearn(b,a)
+                    model = DeepLearn(b,a)
                     model.to(device)
                     optimizer = optim.Adadelta(model.parameters(),lr=d)
                     
                     # for measuring loss in each epoch
-                    train_loss = []
-                    val_loss = []
+                    train_losses = []
+                    val_losses = []
                     
                     for epoch in range(e):
                         
-                        tl = train(model, device, train_dl, optimizer)
-                        train_loss.append(tl)
+                        train_loss = train(model, device, train_dl, optimizer)
+                        train_losses.append(train_loss)
                     
-                        vl = validate(model, device, val_dl, epoch)
-                        val_loss.append(vl)
+                        validation_loss = validate(model, device, val_dl, epoch)
+                        val_losses.append(validation_loss)
                     
                     # plot of losses
-                    x_axs = range(1,len(train_loss)+1)
-                    plt.plot(x_axs,train_loss,'k',x_axs,val_loss,'r--') 
+                    x_axs = range(1,len(train_losses)+1)
+                    plt.plot(x_axs,train_losses,'k',x_axs,val_losses,'r--') 
                     plt.xlabel("Epoch")
                     plt.ylabel("Total Loss / Batch Size")
                     plt.show()
